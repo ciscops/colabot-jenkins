@@ -1,0 +1,88 @@
+jenkins:
+  systemMessage: "Please configure through Configuration as Code file (casc.yaml)"
+  authorizationStrategy:
+    globalMatrix:
+      permissions:
+        - "Overall/Administer:admin"
+        - "Overall/Read:authenticated"
+  clouds:
+    - kubernetes:
+        name: kubernetes
+        namespace: default
+        jenkinsUrl: http://colabot-jenkins-svc.default.svc.cluster.local:80/
+        jenkinsTunnel: colabot-jenkins-svc.default.svc.cluster.local:50000
+        skipTlsVerify: True
+  securityRealm:
+    local:
+      allowsSignup: false
+      users:
+        - id: ${JENKINS_ADMIN_ID}
+          password: ${JENKINS_ADMIN_PASSWORD}
+
+security:
+  queueItemAuthenticator:
+    authenticators:
+    - global:
+        strategy: triggeringUsersAuthorizationStrategy
+
+credentials:
+  system:
+    domainCredentials:
+      - credentials:
+          - usernamePassword:
+              scope: "GLOBAL"
+              id: "github"
+              description: "Github CI User Credentials"
+              username: ${GITHUB_ADMIN_ID}
+              password: ${GITHUB_TOKEN}
+          - usernamePassword:
+              scope: "GLOBAL"
+              id: "dockerhub"
+              description: "DockerHub User Credentials"
+              username: ${DOCKERHUB_ID}
+              password: ${DOCKERHUB_PASSWORD}
+
+jobs:
+  - script: >
+      multibranchPipelineJob('TestWebHooks') {
+          branchSources {
+              git {
+                  id('test-job')
+                  remote("https://github.com/stmosher/testcicd")
+                  credentialsId('github')
+                  includes('*')
+              }
+          }
+      }
+  - script: >
+      multibranchPipelineJob('COLABot') {
+          branchSources {
+              git {
+                  id('colabot-job')
+                  remote("https://github.com/ciscops/colabot")
+                  credentialsId('github')
+                  includes('*')
+              }
+          }
+          triggers {
+            periodic(15)
+          }
+      }
+  - script: >
+      multibranchPipelineJob('COLABot-NLP') {
+          branchSources {
+              git {
+                  id('colabot-nlp-job')
+                  remote("https://github.com/ciscops/colabot-nlp")
+                  credentialsId('github')
+                  includes('*')
+              }
+          }
+          triggers {
+            periodic(15)
+          }
+      }
+
+unclassified:
+  location:
+    url: ${JENKINS_LOCATION_URL}
