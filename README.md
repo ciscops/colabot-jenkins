@@ -6,7 +6,7 @@ Deployment:
     - docker tag $IMAGE $REPO/$IMAGE_NAME
 3. Push image to repo
     - docker push $REPO/$IMAGE_NAME
-4. Deploy with the following environment vars:
+4. Deploy with the following environment variables:
 - GITHUB_ADMIN_ID
 - GITHUB_TOKEN
 - DOCKERHUB_ID
